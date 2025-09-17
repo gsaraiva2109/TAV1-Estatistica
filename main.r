@@ -2,6 +2,7 @@ library(readxl)
 library(dplyr)
 library(scales)
 library(tidyverse)
+library(hms)
 
 dados <- read_excel("C:/Users/heito/Desktop/CVLI_2009-2024.xlsx")
 dados <- dados %>%
@@ -110,27 +111,49 @@ gerar_grafico_barra_ggplot <- function(coluna) {
     theme_minimal()
 }
 
-gerar_grafico_linha_tempo <- function(unidade = c("mes","ano","hora")) {
+gerar_grafico_linha_tempo <- function(unidade = c("mes", "ano", "hora")) {
   unidade <- match.arg(unidade)
+
+  if (unidade == "hora") {
+    
+    dados %>%
+      filter(!is.na(Hora)) %>%
+      mutate(
+        hora_numerica = hour(as_hms(Hora))
+      ) %>%
+      count(hora_numerica, name = "n") %>%
+      ggplot(aes(x = hora_numerica, y = n)) +
+      geom_line(color = "steelblue", linewidth = 1) +
+      geom_point(color = "steelblue", size = 2) +
+      labs(
+        title = "Ocorrências por Hora do Dia",
+        x = "Hora do Dia",
+        y = "Quantidade de Ocorrências"
+      ) +
+      scale_x_continuous(breaks = seq(0, 23, by = 2)) + 
+      theme_minimal()
+    
+  } else {
   
-  dados %>%
-    filter(!is.na(`Data`)) %>%
-    mutate(
-      data = as.Date(`Data`),
-      ano = format(data, "%Y"),
-      mes = format(data, "%Y-%m"),
-      hora = format(as.POSIXct(`Data`), "%H")
-    ) %>%
-    count(.data[[unidade]], name = "n") %>%
-    ggplot(aes(x = .data[[unidade]], y = n, group = 1)) +
-    geom_line(color = "steelblue", linewidth = 1) +
-    geom_point(color = "steelblue", size = 2) +
-    labs(
-      title = paste("Ocorrências por", unidade),
-      x = unidade,
-      y = "Quantidade"
-    ) +
-    theme_minimal()
+    dados %>%
+      filter(!is.na(`Data`)) %>%
+      mutate(
+        data = as.Date(`Data`),
+        ano = format(data, "%Y"),
+        mes = format(data, "%Y-%m")
+      ) %>%
+      count(.data[[unidade]], name = "n") %>%
+      ggplot(aes(x = .data[[unidade]], y = n, group = 1)) +
+      geom_line(color = "steelblue", linewidth = 1) +
+      geom_point(color = "steelblue", size = 2) +
+      labs(
+        title = paste("Ocorrências por", str_to_title(unidade)),
+        x = str_to_title(unidade),
+        y = "Quantidade"
+      ) +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
 }
 
 medidas_posicao_idade <- function() {
